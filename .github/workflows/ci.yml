@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java-version: [11, 17] # or any other Java versions you'd like to test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'adoptopenjdk' # or 'zulu' for other distributions
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build with Maven
+        run: mvn clean install --no-transfer-progress
+
+      - name: Run tests with Maven
+        run: mvn test

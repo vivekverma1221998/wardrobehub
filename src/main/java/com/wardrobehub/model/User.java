@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class User {
+public class User implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -56,7 +57,7 @@ public class User {
 
     @OneToMany(mappedBy = "user" , cascade = CascadeType.ALL)
     @JsonIgnore
-    private List<Review> rivews = new ArrayList<>();
+    private List<Review> review = new ArrayList<>();
 
 
     private LocalDateTime createdAt;

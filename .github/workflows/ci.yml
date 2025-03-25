@@ -15,11 +15,26 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root --password=root"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Set up JDK 21
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
@@ -34,8 +49,35 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -u root --password=root --silent; then
+              echo "MySQL is ready!"
+              exit 0
+            fi
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+          echo "MySQL failed to start"
+          exit 1
+
+      - name: Verify MySQL Connection
+        run: |
+          mysql -h 127.0.0.1 -u test_user -ptest_password -e "SHOW DATABASES;"
+
+      - name: Run database migrations (if needed)
+        run: |
+          mysql -h 127.0.0.1 -u test_user -ptest_password test_db < src/main/resources/schema.sql || true
+
       - name: Build with Maven
         run: mvn clean install -DskipTests
 
       - name: Run tests with Maven
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: test_db
+          DB_USER: test_user
+          DB_PASSWORD: test_password
         run: mvn test
